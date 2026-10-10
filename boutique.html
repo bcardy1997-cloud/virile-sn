@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Boutique — Virile-SN</title>
+  <meta name="description" content="Pompes à vide, extenseurs, anneaux, gels et coffrets couple. Livraison discrète au Sénégal.">
+  <meta name="theme-color" content="#120f17">
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="shop">
+  <div id="site-header"></div>
+
+  <main class="container">
+    <nav class="breadcrumb" id="crumb"></nav>
+    <div class="page-hero" id="page-hero"></div>
+
+    <div class="shop">
+      <aside class="filters" id="filters">
+        <div class="mobile-head"><h3 style="margin:0">Filtres</h3><button class="close-btn" data-close aria-label="Fermer" id="f-close"></button></div>
+        <div class="group"><h4>Catégories</h4><div id="f-cats"></div></div>
+        <div class="group"><h4>Prix maximum</h4>
+          <input type="range" class="range" id="f-price" min="0" step="500">
+          <div class="range-val"><span>0</span><b id="f-price-val"></b></div>
+        </div>
+        <div class="group"><h4>Affiner</h4>
+          <label class="check"><input type="checkbox" id="f-promo"> En promotion</label>
+          <label class="check"><input type="checkbox" id="f-pop"> Les plus demandés</label>
+        </div>
+        <button class="btn btn-dark btn-block filter-toggle" data-close>Voir les résultats</button>
+      </aside>
+
+      <section>
+        <div class="toolbar">
+          <span class="count" id="count"></span>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-outline btn-sm filter-toggle" id="open-filters">Filtres</button>
+            <select class="select" id="sort" aria-label="Trier">
+              <option value="pop">Pertinence</option>
+              <option value="asc">Prix croissant</option>
+              <option value="desc">Prix décroissant</option>
+              <option value="promo">Meilleures remises</option>
+            </select>
+          </div>
+        </div>
+        <div class="chips" id="chips"></div>
+        <div class="grid cols-3" id="results"></div>
+      </section>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/produits.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    (function () {
+      const { P, CATS, I, $, $$, fmt, esc, visual, productCard, catById, waLink } = VSN;
+      const qs = new URLSearchParams(location.search);
+      const maxP = Math.ceil(Math.max(...P.map(p => p.prix)) / 1000) * 1000;
+      const st = { cat: qs.get("cat") || "", q: (qs.get("q") || "").trim(), promo: qs.get("promo") === "1", pop: false, max: maxP, sort: "pop" };
+
+      $("#f-close").innerHTML = I.close;
+      const price = $("#f-price"); price.max = maxP; price.value = maxP;
+      $("#f-promo").checked = st.promo;
+      $$(".search input").forEach(i => i.value = st.q);
+
+      const norm = s => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+
+      function render() {
+        const cat = catById(st.cat);
+        $("#crumb").innerHTML = `<a href="index.html">Accueil</a> › <a href="boutique.html">Boutique</a>${cat ? " › <span>" + cat.nom + "</span>" : ""}${st.q ? " › <span>« " + esc(st.q) + " »</span>" : ""}`;
+        $("#page-hero").innerHTML = cat
+          ? `<div class="ic">${visual(cat.icone, (P.find(p => p.cat === cat.id) || {}).couleur)}</div><div><h1>${cat.nom}</h1><p>${cat.desc}</p></div>`
+          : st.q ? `<div><h1>Résultats pour « ${esc(st.q)} »</h1><p>Vous ne trouvez pas ? <a style="color:var(--brand);font-weight:600" target="_blank" rel="noopener" href="${waLink("Bonjour, je cherche : " + st.q)}">Demandez-nous sur WhatsApp</a>.</p></div>`
+          : st.promo ? `<div><h1>Promotions</h1><p>Profitez de nos meilleures offres du moment, livrées en toute discrétion.</p></div>`
+          : `<div><h1>Toute la boutique</h1><p>Pompes à vide, extenseurs, anneaux, soins et coffrets : une sélection pensée pour la confiance de l'homme et l'épanouissement du couple.</p></div>`;
+        document.title = (cat ? cat.nom : "Boutique") + " — Virile-SN";
+
+        $("#f-cats").innerHTML = [`<button class="filter-cat ${!st.cat ? "active" : ""}" data-cat="">Tous les produits <em>${P.length}</em></button>`]
+          .concat(CATS.map(c => `<button class="filter-cat ${st.cat === c.id ? "active" : ""}" data-cat="${c.id}">${c.nom} <em>${P.filter(p => p.cat === c.id).length}</em></button>`)).join("");
+        $("#f-price-val").textContent = fmt(st.max);
+
+        let list = P.filter(p =>
+          (!st.cat || p.cat === st.cat) &&
+          (!st.promo || p.ancienPrix) &&
+          (!st.pop || p.populaire) &&
+          p.prix <= st.max &&
+          (!st.q || norm(p.nom + " " + p.court + " " + (catById(p.cat) || {}).nom).includes(norm(st.q))));
+        const disc = p => p.ancienPrix ? (p.ancienPrix - p.prix) / p.ancienPrix : 0;
+        if (st.sort === "asc") list.sort((a, b) => a.prix - b.prix);
+        if (st.sort === "desc") list.sort((a, b) => b.prix - a.prix);
+        if (st.sort === "promo") list.sort((a, b) => disc(b) - disc(a));
+        if (st.sort === "pop") list.sort((a, b) => (b.populaire ? 1 : 0) - (a.populaire ? 1 : 0));
+
+        $("#count").textContent = list.length + " produit" + (list.length > 1 ? "s" : "");
+        const chips = [];
+        if (st.q) chips.push(["q", "Recherche : " + st.q]);
+        if (st.promo) chips.push(["promo", "En promotion"]);
+        if (st.pop) chips.push(["pop", "Les plus demandés"]);
+        if (st.max < maxP) chips.push(["max", "≤ " + fmt(st.max)]);
+        $("#chips").innerHTML = chips.map(c => `<span class="chip">${esc(c[1])} <button data-chip="${c[0]}" aria-label="Retirer">×</button></span>`).join("");
+        $("#results").innerHTML = list.length ? list.map(productCard).join("")
+          : `<div class="empty" style="grid-column:1/-1">${I.search}<p>Aucun produit ne correspond à vos critères.</p><a class="btn btn-wa btn-sm" target="_blank" rel="noopener" href="${waLink("Bonjour, je cherche un produit précis.")}">${I.wa} Demander sur WhatsApp</a></div>`;
+      }
+
+      function syncUrl() {
+        const u = new URLSearchParams();
+        if (st.cat) u.set("cat", st.cat); if (st.q) u.set("q", st.q); if (st.promo) u.set("promo", "1");
+        history.replaceState(null, "", "boutique.html" + (u.toString() ? "?" + u : ""));
+      }
+
+      document.addEventListener("click", e => {
+        const c = e.target.closest("[data-cat]");
+        if (c) { st.cat = c.dataset.cat; syncUrl(); render(); window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+        const ch = e.target.closest("[data-chip]");
+        if (ch) { const k = ch.dataset.chip; if (k === "q") { st.q = ""; $$(".search input").forEach(i => i.value = ""); } if (k === "promo") { st.promo = false; $("#f-promo").checked = false; } if (k === "pop") { st.pop = false; $("#f-pop").checked = false; } if (k === "max") { st.max = maxP; price.value = maxP; } syncUrl(); render(); }
+      });
+      price.addEventListener("input", () => { st.max = +price.value; render(); });
+      $("#f-promo").addEventListener("change", e => { st.promo = e.target.checked; syncUrl(); render(); });
+      $("#f-pop").addEventListener("change", e => { st.pop = e.target.checked; render(); });
+      $("#sort").addEventListener("change", e => { st.sort = e.target.value; render(); });
+      $("#open-filters").addEventListener("click", () => { $("#filters").classList.add("open"); $(".overlay").classList.add("open"); });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Produit — Virile-SN</title>
+  <meta name="theme-color" content="#120f17">
+  <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;0,800;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="product" class="has-sticky">
+  <div id="site-header"></div>
+
+  <main class="container" id="product-root"></main>
+
+  <section class="section tight"><div class="container">
+    <div class="section-head"><div><h2>Vous aimerez aussi</h2></div></div>
+    <div class="grid" id="related"></div>
+  </div></section>
+
+  <div class="sticky-buy" id="sticky-buy"></div>
+  <div id="site-footer"></div>
+
+  <script src="js/config.js"></script>
+  <script src="js/produits.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    (function () {
+      const { P, I, $, $$, fmt, esc, media, visual, productCard, catById, waLink, byId, C } = VSN;
+      const id = new URLSearchParams(location.search).get("id");
+      const p = byId(id) || P[0];
+      const cat = catById(p.cat);
+      document.title = p.nom + " — Virile-SN";
+      const z = C.livraison.zones;
+      const wMsg = `Bonjour Virile-SN, je suis intéressé par : ${p.nom} (${fmt(p.prix)}). Pouvez-vous me donner plus d'informations ?`;
+
+      // Variantes visuelles (si pas de vraie photo)
+      const views = p.image ? [media(p)] : [visual(p.visuel, p.couleur), visual(p.visuel, VSN.shade(p.couleur, -40)), visual("coffret", "#2b2733")];
+
+      $("#product-root").innerHTML = `
+        <nav class="breadcrumb"><a href="index.html">Accueil</a> › <a href="boutique.html?cat=${p.cat}">${cat.nom}</a> › <span>${esc(p.nom)}</span></nav>
+        <div class="product">
+          <div class="gallery">
+            <div class="main-img" id="main-img">${p.badge ? `<span class="badge">${esc(p.badge)}</span>` : ""}${views[0]}</div>
+            ${views.length > 1 ? `<div class="thumbs">${views.map((v, i) => `<button class="${i ? "" : "active"}" data-view="${i}" aria-label="Vue ${i + 1}">${v}</button>`).join("")}</div>` : ""}
+          </div>
+          <div class="p-info">
+            <div class="cat">${cat.nom}</div>
+            <h1>${esc(p.nom)}</h1>
+            <p class="muted">${esc(p.court)}</p>
+            <div class="p-price"><span class="price-now">${fmt(p.prix)}</span>${p.ancienPrix ? `<span class="price-old">${fmt(p.ancienPrix)}</span><span class="save">Économisez ${fmt(p.ancienPrix - p.prix)}</span>` : ""}</div>
+            <span class="stock">En stock — expédié sous 24h</span>
+            <ul class="p-points">${p.points.map(x => `<li>${I.check}<span>${esc(x)}</span></li>`).join("")}</ul>
+            <div class="buy-box">
+              <div class="buy-row">
+                <div class="qty lg"><button id="q-minus" aria-label="Moins">−</button><input id="q" value="1" inputmode="numeric" aria-label="Quantité"><button id="q-plus" aria-label="Plus">+</button></div>
+                <button class="btn btn-primary" id="add" data-add="${p.id}" data-qty="1">${I.cart} Ajouter au panier</button>
+              </div>
+              <div class="buy-row">
+                <button class="btn btn-dark" id="buy-now">Acheter maintenant</button>
+                <a class="btn btn-wa" href="${waLink(wMsg)}" target="_blank" rel="noopener">${I.wa} Infos WhatsApp</a>
+              </div>
+              <div class="mini-trust">
+                <div>${I.box} Colis neutre & anonyme</div>
+                <div>${I.truck} ${z[0].delai} à Dakar</div>
+                <div>${I.lock} Wave · OM · Visa</div>
+                <div>${I.chat} Conseil confidentiel</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tabs">
+          <div class="tab-btns" role="tablist">
+            <button class="active" data-tab="0">Description</button>
+            <button data-tab="1">Utilisation</button>
+            <button data-tab="2">Contenu du colis</button>
+            <button data-tab="3">Livraison & paiement</button>
+          </div>
+          <div class="tab-panel active"><p>${esc(p.court)}</p><ul>${p.points.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+          <div class="tab-panel"><ol>${p.utilisation.map(x => `<li>${esc(x)}</li>`).join("")}</ol>
+            <div class="notice">${I.info}<span>Usage réservé aux adultes. Arrêtez immédiatement en cas de douleur, d'engourdissement ou de changement de couleur de la peau. Ce produit n'est pas un médicament : en cas de trouble de l'érection, consultez un médecin.</span></div></div>
+          <div class="tab-panel"><ul>${p.contenu.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
+          <div class="tab-panel"><ul>${z.map(x => `<li><b>${esc(x.nom)}</b> : ${fmt(x.prix)} — ${x.delai}</li>`).join("")}</ul>
+            ${C.livraison.gratuiteDes ? `<p style="margin-top:12px">Livraison offerte dès <b>${fmt(C.livraison.gratuiteDes)}</b> d'achat.</p>` : ""}
+            <p>Paiement par Wave, Orange Money, carte Visa/Mastercard ou en espèces à la livraison. Emballage neutre sans aucune mention du contenu.</p></div>
+        </div>`;
+
+      $("#sticky-buy").innerHTML = `<span class="p">${fmt(p.prix)}</span><a class="btn btn-wa btn-sm" href="${waLink(wMsg)}" target="_blank" rel="noopener" aria-label="WhatsApp">${I.wa}</a><button class="btn btn-primary btn-sm" data-add="${p.id}">${I.cart} Ajouter</button>`;
+
+      const q = $("#q"), add = $("#add");
+      const setQ = v => { v = Math.max(1, Math.min(99, parseInt(v, 10) || 1)); q.value = v; add.dataset.qty = v; };
+      $("#q-minus").onclick = () => setQ(+q.value - 1);
+      $("#q-plus").onclick = () => setQ(+q.value + 1);
+      q.onchange = () => setQ(q.value);
+      $("#buy-now").onclick = () => { VSN.Cart.add(p.id, +q.value); location.href = "panier.html"; };
+
+      $$("[data-view]").forEach(b => b.onclick = () => {
+        $$("[data-view]").forEach(x => x.classList.remove("active")); b.classList.add("active");
+        $("#main-img").innerHTML = (p.badge ? `<span class="badge">${esc(p.badge)}</span>` : "") + views[+b.dataset.view];
+      });
+      $$("[data-tab]").forEach(b => b.onclick = () => {
+        $$("[data-tab]").forEach(x => x.classList.remove("active")); b.classList.add("active");
+        $$(".tab-panel").forEach((pn, i) => pn.classList.toggle("active", i === +b.dataset.tab));
+      });
+
+      const rel = P.filter(x => x.id !== p.id && x.cat === p.cat).concat(P.filter(x => x.id !== p.id && x.cat !== p.cat && x.populaire)).slice(0, 4);
+      $("#related").innerHTML = rel.map(productCard).join("");
+    })();
+  </script>
+</body>
+</html>
